@@ -26,8 +26,29 @@ int LED = 12;           // Specify output analog pin with indicator LED
 const int n = 7;   // number of past input and output samples to buffer; change this to match order of your filter
 int m = 10; // number of past outputs to average for hysteresis
 
+// Select which filter to run:
+//   0 = 120 Hz lamp detector (TA check-in)
+//   1 = 425-445 Hz bandpass
+//   2 = 490-510 Hz bandpass
+//   3 = 525-545 Hz bandpass
+#define FILTER_MODE 0
+
+#if FILTER_MODE == 0
+// 2nd order resonator near 120 Hz
 float den[] = {1.0000,   -1.866752, 	0.935902,	0.00,	0.00,	0.00,	0.00}; //Denominator Coefficients
 float num[] = {0.032049,   0.00,   -0.032049,         0.00,    0.00,    0.00,   0.00}; //Numerator Coefficients
+#elif FILTER_MODE == 1
+float den[] = {1, -3.6268947, 7.3014445, -8.8201584, 7.1003574, -3.4298617, 0.91963178}; //Denominator Coefficients
+float num[] = {8.8140061e-06, 0, -2.6442018e-05, 0, 2.6442018e-05, 0, -8.8140061e-06}; //Numerator Coefficients
+#elif FILTER_MODE == 2
+float den[] = {1, -2.9587641, 5.8346086, -6.7130303, 5.673925, -2.7980276, 0.91963178}; //Denominator Coefficients
+float num[] = {8.8140061e-06, 0, -2.6442018e-05, 0, 2.6442018e-05, 0, -8.8140061e-06}; //Numerator Coefficients
+#elif FILTER_MODE == 3
+float den[] = {1, -2.5754923, 5.1274985, -5.6410495, 4.986292, -2.4355773, 0.91963178}; //Denominator Coefficients
+float num[] = {8.8140061e-06, 0, -2.6442018e-05, 0, 2.6442018e-05, 0, -8.8140061e-06}; //Numerator Coefficients
+#else
+#error "FILTER_MODE must be 0, 1, 2, or 3"
+#endif
 
 
 float x[n],y[n],yn, s[10];     // Space to hold previous samples and outputs; n'th order filter will require upto n samples buffered
