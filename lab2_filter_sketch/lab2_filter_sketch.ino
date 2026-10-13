@@ -26,8 +26,8 @@ int LED = 12;           // Specify output analog pin with indicator LED
 const int n = 7;   // number of past input and output samples to buffer; change this to match order of your filter
 int m = 10; // number of past outputs to average for hysteresis
 
-float den[] = {1.0000,   0.00, 	0.00,	0.00,	0.00,	0.00,	0.00}; //Denominator Coefficients
-float num[] = {0.0058,   0.00,   -0.015,         0.00,    0.015,    0.00,   -0.0058}; //Numerator Coefficients
+float den[] = {1.0000,   -1.866752, 	0.935902,	0.00,	0.00,	0.00,	0.00}; //Denominator Coefficients
+float num[] = {0.032049,   0.00,   -0.032049,         0.00,    0.00,    0.00,   0.00}; //Numerator Coefficients
 
 
 float x[n],y[n],yn, s[10];     // Space to hold previous samples and outputs; n'th order filter will require upto n samples buffered
