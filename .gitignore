@@ -1,0 +1,4 @@
+# Credentials: never commit
+esp32_alert/secrets.h
+supabase/.env
+supabase/functions/.env
