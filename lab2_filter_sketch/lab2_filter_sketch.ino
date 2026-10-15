@@ -55,6 +55,10 @@ float x[n],y[n],yn, s[10];     // Space to hold previous samples and outputs; n'
 
 float threshold_val = 0.2; // Threshold value. Anything higher than the threshold will turn the LED off, anything lower will turn the LED on
 
+// Beam state reported to the ESP32 over serial (TX pin 1). A line is only sent when the
+// state changes, as "EVT BREACH <maxs>" or "EVT CLEAR <maxs>"; the ESP32 turns it into an alert.
+bool breached = false;
+
 // time between samples Ts = 1/Fs. If Fs = 3000 Hz, Ts=333 us
 int Ts = 333;
 
@@ -137,13 +141,14 @@ void loop()
         Serial.println(maxs);
 
         changet = micros();
-        if(maxs < threshold_val)
+        bool nowBreached = maxs < threshold_val;
+        digitalWrite(LED, nowBreached ? HIGH : LOW);
+
+        if (nowBreached != breached)
         {
-          digitalWrite(LED, HIGH);
-        }
-        else
-        {
-          digitalWrite(LED, LOW);
+          breached = nowBreached;
+          Serial.print(breached ? "EVT BREACH " : "EVT CLEAR ");
+          Serial.println(maxs, 3);
         }
       }
       
