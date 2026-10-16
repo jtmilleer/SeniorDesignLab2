@@ -59,6 +59,8 @@ float threshold_val = 0.2; // Threshold value. Anything higher than the threshol
 // state changes, as "EVT BREACH <maxs>" or "EVT CLEAR <maxs>"; the ESP32 turns it into an alert.
 bool breached = false;
 
+unsigned int missed = 0;   // samples that overran Ts since the last status print
+
 // time between samples Ts = 1/Fs. If Fs = 3000 Hz, Ts=333 us
 int Ts = 333;
 
@@ -139,6 +141,12 @@ void loop()
       if ((micros()-changet) > 1000e3)
       {
         Serial.println(maxs);
+        if (missed > 0)
+        {
+          Serial.print("MISSED ");
+          Serial.println(missed);
+          missed = 0;
+        }
 
         changet = micros();
         bool nowBreached = maxs < threshold_val;
@@ -160,8 +168,10 @@ void loop()
      
       if((micros()-t1) > Ts)
       {
-		// if this happens, you must reduce Fs, and/or simplify your filter to run faster        
-		Serial.println("MISSED A SAMPLE"); 
+		// if this happens, you must reduce Fs, and/or simplify your filter to run faster.
+		// Count it instead of printing here: at 1200 baud a print per miss fills the TX buffer,
+		// Serial blocks, and every following sample is missed too.
+		missed++;
       }
       while((micros()-t1) < Ts);  
       
