@@ -1,4 +1,4 @@
-// lab2_filter_sketch_fast: same filters, threshold logic and EVT lines as lab2_filter_sketch,
+// lab2_filter_sketch_fast: same filters, threshold logic and alert pin as lab2_filter_sketch,
 // with a faster loop so mode 1 keeps up at Fs = 3000 Hz (333 us per sample).
 // The original printed "MISSED A SAMPLE" ~2666 times a second in mode 1: each sample took
 // ~375 us, so the Uno really sampled at ~2670 Hz and mode 1's band slid down to ~378-396 Hz,
@@ -7,7 +7,7 @@
 // misses counted and printed once per second, "LOOP us" timing line, unsigned long changet,
 // and samples scheduled at exactly 3000 Hz (micros() steps by 4 us, so the template ran at ~2950 Hz).
 // Check: "LOOP us" must stay under 333 and no "MISSED" lines should appear.
-// The ESP32 sketch needs no changes (it ignores everything except EVT lines).
+// Same ALERT_PIN output to the ESP32 as lab2_filter_sketch.
 
 // A digital frequency selective filter
 // A. Kruger, 2019
@@ -29,6 +29,7 @@
 
 int analogPin = A0;     // Specify analog input pin. Make sure to keep between 0 and 5V.
 int LED = 12;           // Specify output analog pin with indicator LED 
+int ALERT_PIN = 8;      // HIGH while the beam is broken; wired to the ESP32 (see esp32_alert)
 
    // num and den are the numerator and denominator coeffs of a digital frequency-selective filter
    // designed for a sample rate Fs=3000 HZ
@@ -67,8 +68,8 @@ int sk = 0;                    // next slot in s[] (circular, so s[] is not shif
 
 float threshold_val = 0.15; // Threshold value. Anything higher than the threshold will turn the LED off, anything lower will turn the LED on
 
-// Beam state reported to the ESP32 over serial (TX pin 1). A line is only sent when the
-// state changes, as "EVT BREACH <maxs>" or "EVT CLEAR <maxs>"; the ESP32 turns it into an alert.
+// Beam state, reported to the ESP32 as a digital level on ALERT_PIN (HIGH = breached);
+// the ESP32 turns each change into an alert.
 bool breached = false;
 
 // time between samples Ts = 1/Fs. If Fs = 3000 Hz, Ts=333 us
@@ -84,6 +85,7 @@ void setup()
    cbi(ADCSRA,ADPS0);
 
    pinMode(LED,OUTPUT);   // Makes the LED pin an output
+   pinMode(ALERT_PIN,OUTPUT);
 
    for (i=0; i<n; i++)
       x[i] = y[i] = 0;
@@ -172,12 +174,12 @@ void loop()
         changet = micros();
         bool nowBreached = maxs < threshold_val;
         digitalWrite(LED, nowBreached ? HIGH : LOW);
+        digitalWrite(ALERT_PIN, nowBreached ? HIGH : LOW);
 
         if (nowBreached != breached)
         {
           breached = nowBreached;
-          Serial.print(breached ? "EVT BREACH " : "EVT CLEAR ");
-          Serial.println(maxs, 3);
+          Serial.println(breached ? "BREACH" : "CLEAR");   // USB serial monitor only
         }
       }
       

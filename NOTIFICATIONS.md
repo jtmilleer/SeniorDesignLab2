@@ -1,13 +1,13 @@
 # Beam-break email notifications
 
 ```
-Uno (filter, LED) --serial 1200 baud--> ESP32 (WiFi) --HTTPS--> Supabase Edge Function --> Resend --> inbox
+Uno (filter, LED) --pin 8 HIGH/LOW--> ESP32 (WiFi) --HTTPS--> Supabase Edge Function --> Resend --> inbox
                                                                          \--> beam_events table (log)
 ```
 
-- **Uno** (`lab2_filter_sketch/`): unchanged filtering; on a beam state change it prints
-  `EVT BREACH <level>` or `EVT CLEAR <level>`.
-- **ESP32** (`esp32_alert/`): reads those lines, waits out a 30 s cooldown between breach emails,
+- **Uno** (`lab2_filter_sketch/`): unchanged filtering; drives pin 8 HIGH while the beam is
+  broken and LOW while it is clear (same as the indicator LED).
+- **ESP32** (`esp32_alert/`): watches that pin (50 ms debounce), waits out a 30 s cooldown between breach emails,
   retries failed sends, and POSTs `{event, level, threshold, device}` to the function.
 - **Edge Function** (`supabase/functions/beam-alert/`): checks the `x-device-token` header,
   emails through Resend, and logs every event to `public.beam_events`.
@@ -16,11 +16,12 @@ Uno (filter, LED) --serial 1200 baud--> ESP32 (WiFi) --HTTPS--> Supabase Edge Fu
 
 | Uno | ESP32 |
 |---|---|
-| TX (pin 1) → 1 kΩ → | GPIO16, with 2 kΩ from GPIO16 to GND (5 V → 3.3 V) |
+| Pin 8 → 1 kΩ → | GPIO16, with 2 kΩ from GPIO16 to GND (5 V → 3.3 V) |
 | GND | GND |
 
-Never connect the Uno TX straight to the ESP32: 5 V can damage it. Leave Uno RX (pin 0) unconnected,
-or uploads to the Uno will fail. Power the ESP32 from its own USB or from Uno 5V → ESP32 VIN.
+Never connect Uno pin 8 straight to the ESP32: 5 V can damage it. The 2 kΩ also keeps GPIO16 LOW
+(clear) when the Uno is unplugged or resetting. The Uno's TX/RX pins are no longer used, so its
+USB serial monitor is free for debugging. Power the ESP32 from its own USB or from Uno 5V → ESP32 VIN.
 
 ## Supabase setup (one time)
 
@@ -62,4 +63,4 @@ Edge Functions → beam-alert → Logs in the Supabase dashboard; events are in 
    `POST BREACH -> 200 ...` when the beam is broken.
 
 The ESP32's `THRESHOLD` constant is only reported in the email; keep it equal to `threshold_val`
-in the Uno sketch.
+in the Uno sketch. The digital line carries no signal level, so the ESP32 always sends `level: 0`.
