@@ -24,13 +24,14 @@ int LED = 12;           // Specify output analog pin with indicator LED
   
 
 const int n = 7;   // number of past input and output samples to buffer; change this to match order of your filter
+int m = 10; // number of past outputs to average for hysteresis
 
 // Select which filter to run:
 //   0 = 120 Hz lamp detector (TA check-in)
 //   1 = 425-445 Hz bandpass
 //   2 = 490-510 Hz bandpass
 //   3 = 525-545 Hz bandpass
-#define FILTER_MODE 1
+#define FILTER_MODE 0
 
 #if FILTER_MODE == 0
 // 2nd order resonator near 120 Hz
@@ -50,13 +51,9 @@ float num[] = {8.8140061e-06, 0, -2.6442018e-05, 0, 2.6442018e-05, 0, -8.8140061
 #endif
 
 
-float x[n],y[n],yn;     // Space to hold previous samples and outputs; n'th order filter will require upto n samples buffered
+float x[n],y[n],yn, s[10];     // Space to hold previous samples and outputs; n'th order filter will require upto n samples buffered
 
-float env = 0;                    // smoothed envelope of the filter output
-const float ENV_ALPHA = 0.01;     // envelope smoothing; ~100 samples (33 ms) time constant
-
-float threshold_val = 0.16; // Threshold value. Anything higher than the threshold will turn the LED off, anything lower will turn the LED on
-const float HYSTERESIS = 0.2;  // breach below threshold_val*0.8, clear above threshold_val*1.2
+float threshold_val = 0.2; // Threshold value. Anything higher than the threshold will turn the LED off, anything lower will turn the LED on
 
 // Beam state reported to the ESP32 over serial (TX pin 1). A line is only sent when the
 // state changes, as "EVT BREACH <maxs>" or "EVT CLEAR <maxs>"; the ESP32 turns it into an alert.
@@ -80,6 +77,9 @@ void setup()
 
    for (i=0; i<n; i++)
       x[i] = y[i] = 0;
+
+   for(i = 0; i<m; i++)
+    s[i] = 0;
    yn = 0;
 }
 
@@ -103,6 +103,9 @@ void loop()
          y[i] = y[i-1];
       }
       
+      for(i=m-1; i>0; i--){             // Shift absoulute output
+         s[i] = s[i-1];
+      }
       val = analogRead(analogPin);  // New input
 
       x[0] = val*(5.0/1023.0)-2.5;  // Scale to match ADC resolution and range
@@ -122,12 +125,15 @@ void loop()
       //       - What to do when the beam is interrupted, turn on a buzzer, send SMS alert.
       //       - etc.
 
-      // Envelope detector: a running average of |2*yn| (time constant ~1/ENV_ALPHA samples)
-      // averages out noise spikes instead of latching onto them like a max over a few samples.
-      // The average of |sin| is 2/pi of its peak, so scale by pi/2 to keep the old peak scale
-      // and the same threshold_val.
-      env += ENV_ALPHA * (abs(2*yn) - env);
-      float maxs = env * 1.5708;
+      s[0] = abs(2*yn);  // Absolute value of the filter output.
+
+      // SAMPLE Hystersis: Take the max of the past 10 samples and compare that with the threshold
+      float maxs = 0;
+      for(int i = 0; i< m; i++)
+      {
+        if (s[i]>maxs)
+          maxs = s[i];
+      }
 
 
       
@@ -143,10 +149,7 @@ void loop()
         }
 
         changet = micros();
-        // Hysteresis: once breached, the signal must climb back above the upper threshold to clear,
-        // so a level hovering near threshold_val doesn't toggle the state back and forth.
-        bool nowBreached = breached ? maxs < threshold_val * (1 + HYSTERESIS)
-                                    : maxs < threshold_val * (1 - HYSTERESIS);
+        bool nowBreached = maxs < threshold_val;
         digitalWrite(LED, nowBreached ? HIGH : LOW);
 
         if (nowBreached != breached)
