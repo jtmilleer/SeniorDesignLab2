@@ -18,6 +18,7 @@
 
 int analogPin = A0;     // Specify analog input pin. Make sure to keep between 0 and 5V.
 int LED = 12;           // Specify output analog pin with indicator LED 
+int ALERT_PIN = 8;      // HIGH while the beam is broken; wired to the ESP32 (see esp32_alert)
 
    // num and den are the numerator and denominator coeffs of a digital frequency-selective filter
    // designed for a sample rate Fs=3000 HZ
@@ -58,8 +59,8 @@ const float ENV_ALPHA = 0.01;     // envelope smoothing; ~100 samples (33 ms) ti
 float threshold_val = 0.16; // Threshold value. Anything higher than the threshold will turn the LED off, anything lower will turn the LED on
 const float HYSTERESIS = 0.2;  // breach below threshold_val*0.8, clear above threshold_val*1.2
 
-// Beam state reported to the ESP32 over serial (TX pin 1). A line is only sent when the
-// state changes, as "EVT BREACH <maxs>" or "EVT CLEAR <maxs>"; the ESP32 turns it into an alert.
+// Beam state, reported to the ESP32 as a digital level on ALERT_PIN (HIGH = breached);
+// the ESP32 turns each change into an alert.
 bool breached = false;
 
 unsigned int missed = 0;   // samples that overran Ts since the last status print
@@ -77,6 +78,7 @@ void setup()
    cbi(ADCSRA,ADPS0);
 
    pinMode(LED,OUTPUT);   // Makes the LED pin an output
+   pinMode(ALERT_PIN,OUTPUT);
 
    for (i=0; i<n; i++)
       x[i] = y[i] = 0;
@@ -148,12 +150,12 @@ void loop()
         bool nowBreached = breached ? maxs < threshold_val * (1 + HYSTERESIS)
                                     : maxs < threshold_val * (1 - HYSTERESIS);
         digitalWrite(LED, nowBreached ? HIGH : LOW);
+        digitalWrite(ALERT_PIN, nowBreached ? HIGH : LOW);
 
         if (nowBreached != breached)
         {
           breached = nowBreached;
-          Serial.print(breached ? "EVT BREACH " : "EVT CLEAR ");
-          Serial.println(maxs, 3);
+          Serial.println(breached ? "BREACH" : "CLEAR");   // USB serial monitor only
         }
       }
       
