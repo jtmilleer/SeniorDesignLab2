@@ -3,15 +3,15 @@
 // it is clear. This sketch watches that line and POSTs each state change to the beam-alert
 // Supabase Edge Function, which logs the event and emails the group through Resend.
 //
-// Wiring: Uno pin 8 (5V) -> 1k -> ESP32 GPIO16, GPIO16 -> 2k -> GND (divides 5V to 3.3V).
-//         Uno GND -> ESP32 GND. The 2k also holds GPIO16 LOW (clear) if the Uno is unplugged.
+// Wiring: Uno pin 8 (5V) -> 1k -> ESP32 GPIO22, GPIO22 -> 2k -> GND (divides 5V to 3.3V).
+//         Uno GND -> ESP32 GND. The 2k also holds GPIO22 LOW (clear) if the Uno is unplugged.
 
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <HTTPClient.h>
 #include "secrets.h"   // copy secrets.example.h to secrets.h and fill it in
 
-const int UNO_ALERT_PIN = 16;         // HIGH = beam broken
+const int UNO_ALERT_PIN = 22;         // HIGH = beam broken
 const float THRESHOLD = 0.2;          // keep in sync with threshold_val in the Uno sketch (email only)
 const int LED_PIN = 2;                // onboard LED on most ESP32 dev boards; mirrors the beam state
 

@@ -16,10 +16,10 @@ Uno (filter, LED) --pin 8 HIGH/LOW--> ESP32 (WiFi) --HTTPS--> Supabase Edge Func
 
 | Uno | ESP32 |
 |---|---|
-| Pin 8 → 1 kΩ → | GPIO16, with 2 kΩ from GPIO16 to GND (5 V → 3.3 V) |
+| Pin 8 → 1 kΩ → | GPIO22, with 2 kΩ from GPIO22 to GND (5 V → 3.3 V) |
 | GND | GND |
 
-Never connect Uno pin 8 straight to the ESP32: 5 V can damage it. The 2 kΩ also keeps GPIO16 LOW
+Never connect Uno pin 8 straight to the ESP32: 5 V can damage it. The 2 kΩ also keeps GPIO22 LOW
 (clear) when the Uno is unplugged or resetting. The Uno's TX/RX pins are no longer used, so its
 USB serial monitor is free for debugging. Power the ESP32 from its own USB or from Uno 5V → ESP32 VIN.
 
